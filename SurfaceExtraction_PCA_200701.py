@@ -5,6 +5,7 @@ from sys import argv
 
 plot_angle = 0      # plot histogram of maxmimum angle between NN atom vectors.
 PATH_voro = "./voro++-0.4.6/src"
+PATH_vasp = "./vasp"
 
 
 class POSCAR:
@@ -55,7 +56,7 @@ def input_check():
 
 def readPOSCAR():
     POSCAR.surf_th = 360-POSCAR.theta       # surface threshold in degree (inside material)
-    POSCAR.ninfile = argv[1]
+    POSCAR.ninfile = os.path.join(PATH_vasp, argv[1])
     line_list = [line.strip() for line in open(POSCAR.ninfile)]
     compact_line = [x for x in line_list if x != []]
 
