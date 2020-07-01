@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["TiO2_a.vasp"]
+            "args": ["POSCAR_ZnO_001.vasp"]
         }
     ]
 }
