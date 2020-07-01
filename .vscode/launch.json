@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["TiO2_b.vasp"]
+            "args": ["3_6_9.vasp"]
         }
     ]
 }

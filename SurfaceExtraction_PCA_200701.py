@@ -585,6 +585,7 @@ def SurfaceExtraction(data = POSCAR):
         #self_position /= np.linalg.norm(self_position)
         nn_list = [] # nearest neighbor list
         
+        """
         #1st nearest neighbor
         ###if POSCAR.data.atom_num.loc[i] == 60:
         ###    print data.nb_atoms_list[i][0]
@@ -603,7 +604,7 @@ def SurfaceExtraction(data = POSCAR):
 
             else:
                 POSCAR.data.at[i, 'surf_flag'] = "Supercell"
-
+        """
 
 
         #2nd nearest neighbor
