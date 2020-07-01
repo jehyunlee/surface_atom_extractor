@@ -118,7 +118,7 @@ def readPOSCAR():
             matnum += 1
         POSCAR.data.at[i, 'mat_org'] = POSCAR.atom_species[matnum]
         POSCAR.data.at[i, 'matnum_org'] = POSCAR.atom_numbers[matnum]
-        POSCAR.data.at[i, 'surf_flag'] = 0
+        POSCAR.data.at[i, 'surf_flag'] = "internal"
     
     POSCAR.xlen = POSCAR.xmax - POSCAR.xmin + 1 # +1 is to avoid atom overlapping
     POSCAR.ylen = POSCAR.ymax - POSCAR.ymin + 1
@@ -530,7 +530,7 @@ def chk_in_plane(i, self_position, vector_list):
             
             POSCAR.data.at[i, 'polar_delta'] = polar_delta
             if polar_delta < POSCAR.theta * 0.5:
-                POSCAR.data.at[i, 'surf_flag'] = 3
+                POSCAR.data.at[i, 'surf_flag'] = "PCA"
 
             '''
             if i == 13*POSCAR.total_atom+554-1:
@@ -602,11 +602,11 @@ def SurfaceExtraction(data = POSCAR):
                 vector_array.append(nb_vector.tolist())
 
             else:
-                POSCAR.data.at[i, 'surf_flag'] = 2
+                POSCAR.data.at[i, 'surf_flag'] = "Supercell"
 
 
 
-            #2nd nearest neighbor
+        #2nd nearest neighbor
         for k in data.nb_atoms_list[i][0]:
             for m in data.nb_atoms_list[k-1][0]:
                 if (m not in nn_list) and (i != m-1):
@@ -658,7 +658,7 @@ def SurfaceExtraction(data = POSCAR):
             vector_maxinner.append(np.arccos(mininner)*180/np.pi)
             
             if 0 not in vector_inner:
-                POSCAR.data.at[i, 'surf_flag'] = 1
+                POSCAR.data.at[i, 'surf_flag'] = "2NN"
 
     if plot_angle == 1:
         plt.hist(vector_maxinner, bins='auto')
