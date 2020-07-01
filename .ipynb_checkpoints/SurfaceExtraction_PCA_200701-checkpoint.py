@@ -6,7 +6,6 @@ from sys import argv
 plot_angle = 0      # plot histogram of maxmimum angle between NN atom vectors.
 PATH_voro = "./voro++-0.4.6/src"
 PATH_vasp = "./vasp"
-PATH_out = "./vasp_surface"
 
 
 class POSCAR:
@@ -197,12 +196,11 @@ def selfEvaluation(POSCAR = POSCAR):
     lat_vec_zmax = max(POSCAR.lat_vec[0][2], POSCAR.lat_vec[1][2], POSCAR.lat_vec[2][2])
 
     cmd1 = "/".join([PATH_voro, 'voro++ -c "%i %q %n" '])
-    cmd2 = '-o %s %s %s %s %s %s ' \
+    cmd2 = '-o %s %s %s %s %s %s voro_input_single' \
            %(min(POSCAR.xmin, lat_vec_xmin), max(POSCAR.xmax, lat_vec_xmax),
              min(POSCAR.ymin, lat_vec_ymin), max(POSCAR.ymax, lat_vec_ymax),
              min(POSCAR.zmin, lat_vec_zmin), max(POSCAR.zmax, lat_vec_zmax))
-    cmd3 = "voro_input_single"
-    cmd = cmd1 + cmd2 + cmd3
+    cmd = cmd1 + cmd2
     os.system(cmd)
 
     voro_single_list = [line.strip() for line in open('voro_input_single.vol')]
@@ -424,7 +422,7 @@ def runVoro(data = POSCAR):
     b = np.sqrt(data.lat_vec[1][0]**2 + data.lat_vec[1][1]**2 + data.lat_vec[1][2]**2)
     c = np.sqrt(data.lat_vec[2][0]**2 + data.lat_vec[2][1]**2 + data.lat_vec[2][2]**2)
     
-    cmd1 = "/".join([PATH_voro, 'voro++ -c "%i %q %v %n %m" '])
+    cmd1 = 'voro++ -c "%i %q %v %n %m" '
     cmd2 = '-o -p %s %s %s %s %s %s voro_input' %(str(-1*a), str(2*a), str(-1*b), str(2*b), str(-1*c), str(2*c))
     cmd = cmd1 + cmd2
     os.system(cmd)
@@ -671,14 +669,14 @@ def writeCSV(input_filename, POSCAR = POSCAR):
     input_filename = argv[1]
     noutfile = 'Surf_' + input_filename
     data_out = POSCAR.data[POSCAR.total_atom*13:POSCAR.total_atom*14]
-    POSCAR.data.to_csv(os.path.join(PATH_out, noutfile[:-5] + '_supercell.csv'), index=False)
-    data_out.to_csv(os.path.join(PATH_out, noutfile[:-5] + '.csv'), index=False)
+    POSCAR.data.to_csv(noutfile[:-5] + '_supercell.csv', index=False)
+    data_out.to_csv(noutfile[:-5] + '.csv', index=False)
 
 def writeList(POSCAR = POSCAR):
     if os.path.isfile('surfatoms.txt') is True:
         os.remove('surfatoms.txt')
         
-    noutfile = os.path.join(PATH_out, 'surfatoms.txt')
+    noutfile = 'surfatoms.txt'
     outfile = open(noutfile, 'w')
 
     count = 0
