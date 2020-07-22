@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["Bi2Te3_001_4x4_1L 30A.vasp"]
+            "args": ["CoSb3_001_2x2_2L_20A.vasp"]
         }
     ]
 }
