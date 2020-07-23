@@ -1,0 +1,27 @@
+[
+	{
+		"Annotations" : 
+		[
+			"2NN",
+			"2NN",
+			"internal",
+			"internal",
+			"PCA",
+			"PCA"
+		],
+		"IndexedColors" : 
+		[
+			1.0,
+			0.66666666666666663,
+			1.0,
+			0.0,
+			0.0,
+			1.0,
+			0.66666666666666663,
+			1.0,
+			1.0
+		],
+		"Name" : "Surface Atom Extractor"
+	}
+]
+
