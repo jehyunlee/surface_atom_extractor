@@ -1,4 +1,5 @@
-debugmode = 1
+debugmode = 0
+deploymode = 1
 
 import pandas as pd
 import numpy as np
@@ -10,12 +11,23 @@ PATH_voro = "./voro++-0.4.6/src"
 PATH_vasp = "./vasp"
 PATH_out = "./vasp_surface"
 
+### deploymode parameter: working only in deploymode (qCat)
+if deplaymode:
+  PATH_voro = getSolver("voropp")['path']
+  PATH_vasp = ""
+  PATH_out = ""
+  
+  with open("input.poscar", "w") as f:
+    f.write(kCms["input"]["lines"]) 
+  ninfile = 'input.poscar'
+
+
 ### debug mode parameter: working only in debugmode
 class Debugmode:
-    filename = "CoSb3_001_2x2_2L_20A.vasp"
+    filename = "Bi2Te3_001_4x4_1L_30A.vasp"
     theta = 105  # criteria for 2NN surface atom detection
     
-    target_atom = 66  # atom to be investigated deeply in debugmode
+    target_atom = 50  # atom to be investigated deeply in debugmode
     nb_vec = 0  # vectors from target atom to the neighbors
     eig_vec = 0  # eigenvectors
     eig_val = 0  # eigenvalues
@@ -41,6 +53,8 @@ class POSCAR:
     atom_numbers = []
     total_atom = 0
     nb_atoms_list = []
+    
+    surface_index = [] # for deploymode
     
     xmin = np.inf
     xmax = -np.inf
@@ -86,6 +100,8 @@ def readPOSCAR():
     
     if debugmode:
         filename = Debugmode.filename
+    elif deploymode:
+        filename = 'input.poscar'
     else:
         filename = argv[1]
     
@@ -156,9 +172,10 @@ def readPOSCAR():
     POSCAR.ylen = POSCAR.ymax - POSCAR.ymin + 1
     POSCAR.zlen = POSCAR.zmax - POSCAR.zmin + 1
 
-    print '\n#\tX range= %.2f ~ %.2f,\tx length= %.2f' %(POSCAR.xmin, POSCAR.xmax, POSCAR.xlen)
-    print '#\tY range= %.2f ~ %.2f,\ty length= %.2f' %(POSCAR.ymin, POSCAR.ymax, POSCAR.ylen)
-    print '#\tZ range= %.2f ~ %.2f,\tz length= %.2f' %(POSCAR.zmin, POSCAR.zmax, POSCAR.zlen)
+    if not deploymode:
+      print '\n#\tX range= %.2f ~ %.2f,\tx length= %.2f' %(POSCAR.xmin, POSCAR.xmax, POSCAR.xlen)
+      print '#\tY range= %.2f ~ %.2f,\ty length= %.2f' %(POSCAR.ymin, POSCAR.ymax, POSCAR.ylen)
+      print '#\tZ range= %.2f ~ %.2f,\tz length= %.2f' %(POSCAR.zmin, POSCAR.zmax, POSCAR.zlen)
 
     return POSCAR.data
 
@@ -228,7 +245,11 @@ def selfEvaluation(POSCAR = POSCAR):
     lat_vec_ymax = max(POSCAR.lat_vec[0][1], POSCAR.lat_vec[1][1], POSCAR.lat_vec[2][1])
     lat_vec_zmax = max(POSCAR.lat_vec[0][2], POSCAR.lat_vec[1][2], POSCAR.lat_vec[2][2])
 
-    cmd1 = "/".join([PATH_voro, 'voro++ -c "%i %q %n" '])
+    if deploymode:
+        cmd1 = " ".join([PATH_voro, ' -c "%i %q %n" '])
+    else:
+        cmd1 = "/".join([PATH_voro, 'voro++ -c "%i %q %n" '])
+    
     cmd2 = '-o %s %s %s %s %s %s ' \
            %(min(POSCAR.xmin, lat_vec_xmin), max(POSCAR.xmax, lat_vec_xmax),
              min(POSCAR.ymin, lat_vec_ymin), max(POSCAR.ymax, lat_vec_ymax),
@@ -269,7 +290,10 @@ def selfEvaluation(POSCAR = POSCAR):
                 if nb_vector_len > POSCAR.maxveclen:
                     POSCAR.maxveclen = nb_vector_len
 
-    print 'threshold vector length =', POSCAR.maxveclen
+    data_single.to_csv("self_evaluation.csv", index=False)
+    
+    if not deploymode:
+        print 'threshold vector length =', POSCAR.maxveclen
 
 def strFFT():
     ### FFT in x, y, z-direction
@@ -304,8 +328,8 @@ def strFFT():
         X = np.append(X, xmax_sc)
         for i in range(POSCAR.total_atom*27):
             W[int((POSCAR.data.xcoord.loc[i]-xmin_sc)/gridsize)] = 1
-            
-        if Debugmode.plot_pos:
+             
+        if Debugmode.plot_pos and debugmode == 1:
             print("# X-direction")
             plot_pos(X, xnum)
         
@@ -326,7 +350,7 @@ def strFFT():
             vec_x = 1/clipped_frequency[peakind[1]]
         print 'vec_x=', vec_x
 
-        if Debugmode.plot_fft:
+        if Debugmode.plot_fft and debugmode == 1:
             plot_fft(clipped_frequency, clipped_spectrum, peakind)
 
     else:
@@ -362,7 +386,7 @@ def strFFT():
             vec_y = 1/clipped_frequency[peakind[1]]
         print 'vec_y =', vec_y
         
-        if Debugmode.plot_fft:
+        if Debugmode.plot_fft and debugmode == 1:
             plot_fft(clipped_frequency, clipped_spectrum, peakind)
     else:
         vec_y = np.sqrt(POSCAR.maxveclen/3)
@@ -398,7 +422,7 @@ def strFFT():
             vec_z = 1/clipped_frequency[peakind[1]]
         print 'vec_z =', vec_z
 
-        if Debugmode.plot_fft:
+        if Debugmode.plot_fft and debugmode == 1:
             plot_fft(clipped_frequency, clipped_spectrum, peakind)
     else:
         vec_z = np.sqrt(POSCAR.maxveclen/3)
@@ -455,8 +479,11 @@ def runVoro(data = POSCAR):
     a = np.sqrt(data.lat_vec[0][0]**2 + data.lat_vec[0][1]**2 + data.lat_vec[0][2]**2)
     b = np.sqrt(data.lat_vec[1][0]**2 + data.lat_vec[1][1]**2 + data.lat_vec[1][2]**2)
     c = np.sqrt(data.lat_vec[2][0]**2 + data.lat_vec[2][1]**2 + data.lat_vec[2][2]**2)
-    
-    cmd1 = "/".join([PATH_voro, 'voro++ -c "%i %q %v %n %m" '])
+
+    if deploymode:
+        cmd1 = " ".join([PATH_voro, ' -c "%i %q %v %n %m" '])
+    else:
+        cmd1 = "/".join([PATH_voro, 'voro++ -c "%i %q %v %n %m" '])
     cmd2 = '-o -p %s %s %s %s %s %s voro_input' %(str(-1*a), str(2*a), str(-1*b), str(2*b), str(-1*c), str(2*c))
     cmd = cmd1 + cmd2
     os.system(cmd)
@@ -551,7 +578,7 @@ def SurfaceExtraction(data = POSCAR):
     
     vector_maxinner = []
     for i in range(POSCAR.total_atom*13, POSCAR.total_atom*14):
-        #print '############ atom ',i+1
+#         print '############ atom ',i+1
         vector_array = []
         self_position = np.array([data.data.xcoord.loc[i], data.data.ycoord.loc[i], data.data.zcoord.loc[i]])
 
@@ -635,9 +662,15 @@ def SurfaceExtraction(data = POSCAR):
                 POSCAR.data.at[i, 'surf_flag'] = "2NN"
 
     # plot histogram of maxmimum angle between NN atom vectors.
-    if Debugmode.plot_hist == 1:
+    if Debugmode.plot_hist == 1 and debugmode == 1:
+        
+        # preventing exploding bins (> 50,000,000)
+        X, Y = np.histogram(vector_maxinner, bins="auto")
+        nbin_auto = len(X)
+        bins = min(100, nbin_auto)
+        
         fig, ax = plt.subplots()
-        ax.hist(vector_maxinner, bins='auto')
+        ax.hist(vector_maxinner, bins=bins)
         ax.set_xticks(np.arange(90, 180.1, step=15))
         ax.set_title("distribution: max angle between NN atom vectors")
     
@@ -647,10 +680,19 @@ def writeCSV(input_filename, POSCAR = POSCAR):
         filename = Debugmode.filename
     else:
         filename = argv[1]
+    
+    # insert atomic Radius
+    df_elm = pd.read_csv("VESTA_elements.csv")
+    mats = df_elm["mat"].tolist()
+    r_atomic = df_elm["R_atomic(A)"].tolist()
+    mats_r = dict(zip(mats, r_atomic))
+
+    POSCAR.data["R_atomic(A)"] = POSCAR.data["mat_org"].apply(lambda x: mats_r[x])
+    
     noutfile = 'Surf_' + filename
     data_out = POSCAR.data[POSCAR.total_atom*13:POSCAR.total_atom*14]
-    POSCAR.data.to_csv(os.path.join(PATH_out, filename.rsplit(".", 1)[0] + '_supercell.csv'), index=False)
-    data_out.to_csv(os.path.join(PATH_out, filename.rsplit(".",1)[0] + '.csv'), index=False)
+    POSCAR.data.to_csv(os.path.join(PATH_out, noutfile.rsplit(".", 1)[0] + '_supercell.csv'), index=False)
+    data_out.to_csv(os.path.join(PATH_out, noutfile.rsplit(".",1)[0] + '.csv'), index=False)
 
 def writeList(POSCAR = POSCAR):
     if os.path.isfile('surfatoms.txt') is True:
@@ -670,18 +712,32 @@ def writeList(POSCAR = POSCAR):
     
     outfile.close()
     print 'number of surface atoms = ', count
-    del POSCAR
 
+def outSurface():
+    for i in range(POSCAR.total_atom*13, POSCAR.total_atom*14):
+        POSCAR.surface_index.append(POSCAR.data.atom_num.loc[i])
 
+    output = {}
+    output['lines'] = kCms['input']['lines']
+    output['Surface_index'] = POSCAR.surface_index
+
+    print(json.dumps(output))    
+    
 def main():
-    input_check()
+    if not deploymode:
+        input_check()
+
     readPOSCAR()
     selfEvaluation()
     makeSupercell()
     runVoro()
     SurfaceExtraction()
-    writeCSV(argv[1])
-    writeList()
+    
+    if deploymode:
+        outSurface()
+    else:
+        writeCSV(argv[1])
+        writeList()
     
 
 if __name__ == '__main__':
