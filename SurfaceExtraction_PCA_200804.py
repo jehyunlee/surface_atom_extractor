@@ -3,7 +3,7 @@ deploymode = 0
 
 import pandas as pd
 import numpy as np
-import os, copy
+import os, copy, json
 from sys import argv
 import matplotlib.pyplot as plt
 
@@ -11,20 +11,20 @@ PATH_voro = "./voro++-0.4.6/src"
 PATH_vasp = "./vasp"
 PATH_out = "./vasp_surface"
 
-### deploymode parameter: working only in deploymode
-if deplaymode:
-  PATH_voro = getSolver("voropp")['path']
-  PATH_vasp = ""
-  PATH_out = ""
+### deploymode parameter: working only in deploymode (qCat)
+if deploymode:
+    PATH_voro = getSolver("voropp")['path']
+    PATH_vasp = ""
+    PATH_out = ""
   
-  with open("input.poscar", "w") as f:
-    f.write(kCms["input"]["lines"]) 
-  ninfile = 'input.poscar'
+    with open("input.poscar", "w") as f:
+        f.write(kCms["input"]["lines"]) 
+    ninfile = 'input.poscar'
 
 
 ### debug mode parameter: working only in debugmode
 class Debugmode:
-    filename = "Bi2Te3_001_4x4_1L_30A.vasp"
+    filename = "TePb_001_3x3_2L_15A.vasp"
     theta = 105  # criteria for 2NN surface atom detection
     
     target_atom = 50  # atom to be investigated deeply in debugmode
@@ -34,10 +34,10 @@ class Debugmode:
     transformed = 0 # nb_vec after PCA transformation
     transformed_eigvec = 0 # eigenvectors of after PCA transformation
     
-    plot_hist = 1
+    plot_hist = 0
     plot_pos = 0
-    plot_fft = 1
-    plot_eigenvector = 1
+    plot_fft = 0
+    plot_eigenvector = 0
     
     fix = 1 # code operation mode: before fix(0), after fix(1)
 
@@ -348,7 +348,7 @@ def strFFT():
             vec_x = np.sqrt(POSCAR.maxveclen/3)
         else:
             vec_x = 1/clipped_frequency[peakind[1]]
-        print 'vec_x=', vec_x
+#        print 'vec_x=', vec_x
 
         if Debugmode.plot_fft and debugmode == 1:
             plot_fft(clipped_frequency, clipped_spectrum, peakind)
@@ -384,7 +384,7 @@ def strFFT():
             vec_y = np.sqrt(POSCAR.maxveclen/3)
         else:
             vec_y = 1/clipped_frequency[peakind[1]]
-        print 'vec_y =', vec_y
+#        print 'vec_y =', vec_y
         
         if Debugmode.plot_fft and debugmode == 1:
             plot_fft(clipped_frequency, clipped_spectrum, peakind)
@@ -401,7 +401,7 @@ def strFFT():
         for i in range(POSCAR.total_atom*27):
             W[int((POSCAR.data.zcoord.loc[i]-zmin_sc)/gridsize)] = 1
         
-        if debugmode and Debugmode.plot_pos:
+        if Debugmode.plot_pos:
             print("# Z-direction")
             plot_pos(Z, znum)
 
@@ -420,7 +420,7 @@ def strFFT():
             vec_z = np.sqrt(POSCAR.maxveclen/3)
         else:
             vec_z = 1/clipped_frequency[peakind[1]]
-        print 'vec_z =', vec_z
+#        print 'vec_z =', vec_z
 
         if Debugmode.plot_fft and debugmode == 1:
             plot_fft(clipped_frequency, clipped_spectrum, peakind)
@@ -435,7 +435,7 @@ def strFFT():
     else:
         POSCAR.f_radius = max(POSCAR.maxveclen, POSCAR.f_radius)
     
-    print 'f_radius =', POSCAR.f_radius
+#    print 'f_radius =', POSCAR.f_radius
     
 
 def makeSupercell(POSCAR = POSCAR):
@@ -715,11 +715,15 @@ def writeList(POSCAR = POSCAR):
 
 def outSurface():
     for i in range(POSCAR.total_atom*13, POSCAR.total_atom*14):
-        POSCAR.surface_index.append(POSCAR.data.atom_num.loc[i])
+        if POSCAR.data["surf_flag"].loc[i] != "internal":
+            POSCAR.surface_index.append(POSCAR.data.atom_num.loc[i])
 
-    output = {}
-    output['lines'] = kCms['input']['lines']
-    output['Surface_index'] = POSCAR.surface_index
+    if deploymode:
+        output = {}
+        output['lines'] = kCms['input']['lines']
+        output['Surface_index'] = POSCAR.surface_index
+    else:
+        output = POSCAR.surface_index
 
     print(json.dumps(output))    
     
@@ -733,9 +737,9 @@ def main():
     runVoro()
     SurfaceExtraction()
     
-    if deploymode:
+    if deploymode or debugmode:
         outSurface()
-    else:
+    if not deploymode:
         writeCSV(argv[1])
         writeList()
     
